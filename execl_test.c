@@ -94,9 +94,10 @@ static int exec_command2(void)
 }
 
 int main(){
-	exec_command1();
-	exec_command2();
 	
-  return EXIT_SUCCESS;
+	exec_command1(); //echo
+	exec_command2(); //ls
+	
+	return EXIT_SUCCESS;
 
 }

@@ -1,33 +1,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "my_thread.h"
 #include "linkedlist.h"
 
-static void* thread1(void* pParam);
+static void thread1(void* pParam);
+static void thread1_cbfunc(void* pParam);
 
 int main(void){
-  cell_class list;
-  int list_method = random();
-  my_thread thd;
-
-  /* initial */
-  list_method = list_method  % 3;
-  printf("list method is %d. \n", list_method);
-  cell_class_constructor(&list, list_method);
+  cell_class list[6];
+  my_thread* thd[6];
 
   /* declarative */
-  my_thread_constructor(&thd, thread1, &list, NULL, NULL);
-  my_thread_add_que(&thd);
+  my_thread_sys_init();
+  my_thread_sys_run_start();
+
+  for(int i = 0; i < 6; i++){
+    printf("[%d] 0x%08lx\n", i, (unsigned long)&list[i]);
+    cell_class_constructor(&list[i], (i % 3));
+    thd[i] = my_thread_que_get_empty();
+    my_thread_que_add(thd[i], thread1, &list[i], thread1_cbfunc, &list[i]);
+  }
+  
+  my_thread_sys_wait_allque_done();
+  my_thread_sys_run_stop();
 
   return 0;
 }
 
-static void* thread1(void* pParam)
+static void thread1_cbfunc(void* pParam)
+{
+  printf("cb_func call. 0x%08lx \n", (unsigned long)pParam);
+}
+
+static void thread1(void* pParam)
 {
   cell_class* list = pParam;
-
+  printf(" thread1 is 0x%08lx. \n", (unsigned long)list);
   list->vect.init(list);
   for(int i=0;i<10;i++){
     list->vect.add(list, random());

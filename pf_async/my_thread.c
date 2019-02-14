@@ -66,7 +66,7 @@ int my_thread_que_add(my_thread* thd, void* entry_func, void* entry_param,
   thd->data.cb_param = cb_param;
   thd->ctrl = &vect;
   thd->data.que_status = que_req_status_wait_do;
-  req_list_admin.vect.add(&req_list_admin, (unsigned long)thd, thd);
+  req_list_admin.vect.add(&req_list_admin, thd);
   return 0;
   
 }

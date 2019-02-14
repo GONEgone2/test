@@ -6,9 +6,9 @@
 
 /* prototype declaration */
 static void list_init(void* self);
-static void list_push_data_more(void* self, unsigned long input, void* data);
-static void list_push_data_less(void* self, unsigned long input, void* data);
-static void list_push_data_normal(void* self, unsigned long input, void* data);
+static void list_push_data_more(void* self, void* data);
+static void list_push_data_less(void* self, void* data);
+static void list_push_data_normal(void* self, void* data);
 static void list_get_next_cell(void* self, void* target_cell, void** next_cell);
 static void list_delete_data(void* self, void* data);
 static void list_display(void* self);
@@ -152,14 +152,14 @@ static cell* list_get_tail_cell(void* self)
   }
   return NULL;
 }
-static cell* list_get_morevalue_cell(void* self, int input)
+static cell* list_get_morevalue_cell(void* self, void* input)
 {
   cell_class* this = self;
   cell* target = this->list_top;
 
   if(target == NULL) return target;
   while(target != NULL){
-    if(target->data.value == input){
+    if((unsigned long)target->data.data == (unsigned long)input){
       cell* del_target;
       del_target = target;
       target = del_target->prev;
@@ -168,7 +168,7 @@ static cell* list_get_morevalue_cell(void* self, int input)
 	target = this->list_top;
       }
       break;
-    }else if(target->data.value > input){
+    }else if((unsigned long)target->data.data > (unsigned long)input){
       break;
     }
     target = target->next;
@@ -176,20 +176,20 @@ static cell* list_get_morevalue_cell(void* self, int input)
 
   return target;
 }
-static cell* list_get_lessvalue_cell(void* self, int input)
+static cell* list_get_lessvalue_cell(void* self, void* input)
 {
   cell_class* this = self;
   cell* target = this->list_top;
 
   if(target == NULL) return target;
   while(target != NULL){
-    if(target->data.value == input){
+    if((unsigned long)target->data.data == (unsigned long)input){
       cell* del_target;
       del_target = target;
       target = del_target->next;
       list_remove(self, del_target);
       break;
-    }else if(target->data.value < input){
+    }else if((unsigned long)target->data.data < (unsigned long)input){
       break;
     }
     target = target->next;
@@ -197,7 +197,7 @@ static cell* list_get_lessvalue_cell(void* self, int input)
 
   return target;
 }
-static void list_push_data_normal(void* self, unsigned long input, void* data)
+static void list_push_data_normal(void* self, void* data)
 {
   cell_class* this = self;
   cell* target = list_get_empty_cell(self);
@@ -210,12 +210,11 @@ static void list_push_data_normal(void* self, unsigned long input, void* data)
     list_remove(self, target);
   }
 
-  target->data.value = input;
   target->data.data = data;
   list_push_tail(self, target);
 }
 
-static void list_push_data_more(void* self, unsigned long input, void* data)
+static void list_push_data_more(void* self, void* data)
 {
   cell_class* this = self;
   cell* target = list_get_empty_cell(self);
@@ -228,13 +227,12 @@ static void list_push_data_more(void* self, unsigned long input, void* data)
     if(target == NULL) return;
     list_remove(self, target);
   }
-  list_pos_insert = list_get_morevalue_cell(self, input);
+  list_pos_insert = list_get_morevalue_cell(self, data);
 
-  target->data.value = input;
   target->data.data = data;
   list_push_before_target(self, target, list_pos_insert);
 }
-static void list_push_data_less(void* self, unsigned long input, void* data)
+static void list_push_data_less(void* self, void* data)
 {
   cell_class* this = self;
   cell* target = list_get_empty_cell(self);
@@ -247,8 +245,7 @@ static void list_push_data_less(void* self, unsigned long input, void* data)
     if(target == NULL) return;
     list_remove(self, target);
   }
-  list_pos_insert = list_get_lessvalue_cell(self, input);
-  target->data.value = input;
+  list_pos_insert = list_get_lessvalue_cell(self, data);
   target->data.data = data;
   list_push_before_target(self, target, list_pos_insert);
 }
@@ -297,7 +294,7 @@ static void list_display(void* self)
   }
 
   while (target != NULL) {
-    printf("list[%d]=%ld \n", i, target->data.value);
+    printf("list[%d]=%lu \n", i, (unsigned long)target->data.data);
     if(target->next == NULL){
       break;
     }

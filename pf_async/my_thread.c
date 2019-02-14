@@ -18,10 +18,9 @@ static my_thread_ctrl vect = {
 /* --------------------- admin info -------------- */
 #define MY_THREAD_REQ_MAX 10
 static my_thread req_list[MY_THREAD_REQ_MAX];
-static cell_class req_list_admin;
+static void* req_list_admin = NULL;
 static int req_list_cnt = 0;
 static pthread_t g_admin_tid = 0;
-static int g_sys_init = 0;
 
 /* --------------------- prottype func -------------- */
 static void my_thread_search_que(void);
@@ -31,12 +30,19 @@ static int my_thread_chk_enable_que(my_thread* thd);
 /* --------------------- function ------------------- */
 void my_thread_sys_init(void)
 {
-  if(g_sys_init) return ;
-  g_sys_init = 1;
+  if(req_list_admin != NULL) return ;
   memset(req_list, 0, sizeof(my_thread) * MY_THREAD_REQ_MAX);
-  cell_class_constructor(&req_list_admin, cell_vect_kind_normal);
+  if(cell_class_init (cell_vect_kind_normal, &req_list_admin) < 0){
+    printf("cell_class_init is fail. \n");
+  }
 }
-
+void my_thread_sys_finish(void)
+{
+  if( req_list_admin == NULL) return ;
+  cell_class_finsh(req_list_admin);
+  req_list_admin = NULL;
+  
+}
 my_thread* my_thread_que_get_empty(void)
 {
   my_thread* thd = NULL;
@@ -66,7 +72,7 @@ int my_thread_que_add(my_thread* thd, void* entry_func, void* entry_param,
   thd->data.cb_param = cb_param;
   thd->ctrl = &vect;
   thd->data.que_status = que_req_status_wait_do;
-  req_list_admin.vect.add(&req_list_admin, thd);
+  cell_class_add(req_list_admin, thd);
   return 0;
   
 }
@@ -74,11 +80,11 @@ int my_thread_que_add(my_thread* thd, void* entry_func, void* entry_param,
 void my_thread_sys_wait_allque_done(void)
 {
   
-  cell*      cell_next = (cell*) 0xff;
+  void* cell_next = (void*)0xff;
   
   /* signalかえたい */
   while(cell_next){
-    req_list_admin.vect.get_next(&req_list_admin, NULL, (void**)&cell_next);
+    cell_class_get_next(req_list_admin, NULL, &cell_next);
     if(cell_next != NULL){
       usleep(100 * 1000);
     }
@@ -156,7 +162,7 @@ static void my_thread_run_que(my_thread* thd)
     thd->ctrl->run(thd);
   }
   thd->data.que_status = que_req_status_empty;
-  req_list_admin.vect.del(&req_list_admin, thd);
+  cell_class_del(req_list_admin, thd);
 
 }
 

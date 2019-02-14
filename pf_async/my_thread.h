@@ -38,6 +38,7 @@ typedef struct _my_thread
 
 /* system all method */
 extern void my_thread_sys_init(void);
+extern void my_thread_sys_finish(void);
 extern void my_thread_sys_run_start(void);
 extern void my_thread_sys_run_stop(void);
 extern void my_thread_sys_wait_allque_done(void);

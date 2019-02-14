@@ -10,34 +10,14 @@ typedef enum _cell_vect_kind{
   cell_vect_kind_max
 } cell_vect_kind;
 
-typedef struct _cell_vect{
-  void (*init)(void* self);
-  void (*add) (void* self, void* data);
-  void (*del) (void* self, void* data);
-  void (*get_next)(void* self, void* target_cell, void** next_cell);
-  void (*display)(void* self);
-}cell_vect;
-
-typedef struct _cell_data
-{
-  void* data;
-}cell_data;
-
-typedef struct _cell
-{
-  struct _cell* next;
-  struct _cell* prev;
-  cell_data     data;
-}cell;
-
-typedef struct _cell_class
-{
-  cell_vect  vect;
-  cell*      list_top;
-  cell       resouce_list[RES_LIST_MAX];
-}cell_class;
-
-extern void cell_class_constructor(cell_class* self, cell_vect_kind kind);
+extern int cell_class_init(cell_vect_kind kind, void** cell_class);
+extern void cell_class_add(void* cell_class, void* data);
+extern void cell_class_del(void* cell_class, void* data);
+extern void cell_class_get_next(void* cell_class, void* target_cell, void** cell);
+extern void cell_class_get_top(void* cell_class, void** cell);
+extern void cell_class_get_data_from_cell(void* cell, void** data);
+extern void cell_class_display(void* cell_class);
+extern void cell_class_finsh(void* cell_class);
 
 #endif
 

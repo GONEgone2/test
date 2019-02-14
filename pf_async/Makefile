@@ -14,4 +14,5 @@ $(PROGRAM): $(OBJECTS)
 
 clean:
 	rm -f *.o $(PROGRAM) $(GTAGS)
-
+distclean:
+	rm -f *.o $(PROGRAM)

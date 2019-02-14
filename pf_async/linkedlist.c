@@ -1,8 +1,35 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "linkedlist.h"
 
 #define UNUSED_PARAM_IGNORE_COMPILE_WARN(x) ((void) x)
+typedef struct _cell_vect{
+  void (*init)(void* self);
+  void (*add) (void* self, void* data);
+  void (*del) (void* self, void* data);
+  void (*get_next)(void* self, void* target_cell, void** next_cell);
+  void (*display)(void* self);
+}cell_vect;
+
+typedef struct _cell_data
+{
+  void* data;
+}cell_data;
+
+typedef struct _cell
+{
+  struct _cell* next;
+  struct _cell* prev;
+  cell_data     data;
+}cell;
+
+typedef struct _cell_class
+{
+  cell_vect  vect;
+  cell*      list_top;
+  cell       resouce_list[RES_LIST_MAX];
+}cell_class;
 
 /* prototype declaration */
 static void list_init(void* self);
@@ -36,20 +63,74 @@ static cell_vect vect_normal={
   list_display         /* display */
 };
 
-void cell_class_constructor(cell_class* self, cell_vect_kind kind)
+/* public functin */
+int cell_class_init(cell_vect_kind kind, void** cell_class_ptr)
 {
+  cell_class* self;
+  
+  self = (cell_class*)malloc(sizeof(cell_class));
+  if(self == NULL){
+    return -1;
+  }
+  memset(self, 0, sizeof(cell_class));
   switch (kind) {
-  case cell_vect_kind_up: self->vect = vect_up; break;
-  case cell_vect_kind_down: self->vect = vect_down; break;
-  default: self->vect = vect_normal; break;
+  case cell_vect_kind_up:   self->vect = vect_up;     break;
+  case cell_vect_kind_down: self->vect = vect_down;   break;
+  default:                  self->vect = vect_normal; break;
+  }
+  *cell_class_ptr = (void*)self;
+  
+  return 0;
+}
+
+void cell_class_add(void* cell_class_ptr, void* data)
+{
+  cell_class* self = cell_class_ptr;
+  self->vect.add(self, data);
+}
+void cell_class_del(void* cell_class_ptr, void* data)
+{
+  cell_class* self = cell_class_ptr;
+  self->vect.del(self, data);
+}
+void cell_class_get_next(void* cell_class_ptr, void* target_cell, void** cell_ptr)
+{
+  cell* ret;
+  cell_class* self = cell_class_ptr;
+  self->vect.get_next(self, target_cell, (void**)&ret);
+  *cell_ptr = ret;
+}
+void cell_class_get_top(void* cell_class_ptr, void** cell_ptr)
+{
+  cell* ret;
+  cell_class* self = cell_class_ptr;  
+  self->vect.get_next(self, NULL, (void**)&ret);
+  *cell_ptr = ret;
+}
+void cell_class_get_data_from_cell(void* cell_ptr, void** data_ptr)
+{
+  cell* pcell = cell_ptr;
+  if(pcell != NULL){
+    *data_ptr = pcell->data.data;
+  }else{
+    *data_ptr = NULL;
+  }
+}
+void cell_class_display(void* cell_class_ptr)
+{
+  cell_class* self = cell_class_ptr;
+  self->vect.display(self);
+}
+void cell_class_finsh(void* cell_class_ptr){
+  if(cell_class_ptr != NULL){
+    free(cell_class_ptr);
   }
 }
 
 static void list_init(void* self)
 {
   cell_class* this = self;
-  memset(this->resouce_list, 0, sizeof(cell) * RES_LIST_MAX);
-  this->list_top = NULL;
+  UNUSED_PARAM_IGNORE_COMPILE_WARN(this);
 }
 
 static cell* list_get_empty_cell(void* self)
@@ -128,9 +209,15 @@ static void list_remove(void* self, cell* p)
   if((prev != NULL) && (next != NULL)){
     prev->next = next;
     next->prev = prev;
+  }else if((next == NULL) && (prev == NULL)){
+    if(this == NULL) return;
+    if(this->list_top == p){
+      this->list_top = NULL;
+    }
   }else if(next == NULL){
     prev->next = NULL;
   }else if(prev == NULL){
+    if(this == NULL) return;
     this->list_top = next;
     this->list_top->prev = NULL;
   }
@@ -255,7 +342,7 @@ static void list_get_next_cell(void* self, void* target_cell, void** next_cell)
   cell_class* this = self;
   cell* target = (cell*)target_cell;
   
-  if(target_cell == NULL){
+  if(target == NULL){
     *next_cell = this->list_top;
     return ;
   }
@@ -266,10 +353,11 @@ static cell* list_get_cell_from_data(void* self, void* data)
   cell_class* this = self;
   cell* target = this->list_top;
   
-  while(target){
+  while(target != NULL){
     if(target->data.data == data){
       return target;
     }
+    target = target->next;
   }
 
   return NULL;

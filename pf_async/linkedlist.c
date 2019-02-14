@@ -2,27 +2,37 @@
 #include <string.h>
 #include "linkedlist.h"
 
+#define UNUSED_PARAM_IGNORE_COMPILE_WARN(x) ((void) x)
+
 /* prototype declaration */
 static void list_init(void* self);
-static void list_push_data_more(void* self, int input);
-static void list_push_data_less(void* self, int input);
-static void list_push_data_normal(void* self, int input);
+static void list_push_data_more(void* self, unsigned long input, void* data);
+static void list_push_data_less(void* self, unsigned long input, void* data);
+static void list_push_data_normal(void* self, unsigned long input, void* data);
+static void list_get_next_cell(void* self, void* target_cell, void** next_cell);
+static void list_delete_data(void* self, void* data);
 static void list_display(void* self);
 
 /* func type */
 static cell_vect vect_up={
   list_init,           /* init */
   list_push_data_more, /* add */
+  list_delete_data,    /* del */
+  list_get_next_cell,  /* get_next */
   list_display         /* display */
 };
 static cell_vect vect_down={
   list_init,           /* init */
   list_push_data_less, /* add */
+  list_delete_data,    /* del */
+  list_get_next_cell,  /* get_next */
   list_display         /* display */
 };
 static cell_vect vect_normal={
   list_init,           /* init */
   list_push_data_normal,      /* add */
+  list_delete_data,    /* del */
+  list_get_next_cell,  /* get_next */
   list_display         /* display */
 };
 
@@ -187,11 +197,13 @@ static cell* list_get_lessvalue_cell(void* self, int input)
 
   return target;
 }
-static void list_push_data_normal(void* self, int input)
+static void list_push_data_normal(void* self, unsigned long input, void* data)
 {
   cell_class* this = self;
   cell* target = list_get_empty_cell(self);
-
+  
+  UNUSED_PARAM_IGNORE_COMPILE_WARN(this);
+  
   if(target == NULL){
     target = list_get_tail_cell(self);
     if(target == NULL) return;
@@ -199,15 +211,18 @@ static void list_push_data_normal(void* self, int input)
   }
 
   target->data.value = input;
+  target->data.data = data;
   list_push_tail(self, target);
 }
 
-static void list_push_data_more(void* self, int input)
+static void list_push_data_more(void* self, unsigned long input, void* data)
 {
   cell_class* this = self;
   cell* target = list_get_empty_cell(self);
   cell* list_pos_insert;
-
+  
+  UNUSED_PARAM_IGNORE_COMPILE_WARN(this);
+  
   if(target == NULL){
     target = list_get_tail_cell(self);
     if(target == NULL) return;
@@ -216,14 +231,17 @@ static void list_push_data_more(void* self, int input)
   list_pos_insert = list_get_morevalue_cell(self, input);
 
   target->data.value = input;
+  target->data.data = data;
   list_push_before_target(self, target, list_pos_insert);
 }
-static void list_push_data_less(void* self, int input)
+static void list_push_data_less(void* self, unsigned long input, void* data)
 {
   cell_class* this = self;
   cell* target = list_get_empty_cell(self);
   cell* list_pos_insert;
-
+  
+  UNUSED_PARAM_IGNORE_COMPILE_WARN(this);
+  
   if(target == NULL){
     target = list_get_tail_cell(self);
     if(target == NULL) return;
@@ -231,7 +249,39 @@ static void list_push_data_less(void* self, int input)
   }
   list_pos_insert = list_get_lessvalue_cell(self, input);
   target->data.value = input;
+  target->data.data = data;
   list_push_before_target(self, target, list_pos_insert);
+}
+
+static void list_get_next_cell(void* self, void* target_cell, void** next_cell)
+{
+  cell_class* this = self;
+  cell* target = (cell*)target_cell;
+  
+  if(target_cell == NULL){
+    *next_cell = this->list_top;
+    return ;
+  }
+  *next_cell = target->next;
+}
+static cell* list_get_cell_from_data(void* self, void* data)
+{
+  cell_class* this = self;
+  cell* target = this->list_top;
+  
+  while(target){
+    if(target->data.data == data){
+      return target;
+    }
+  }
+
+  return NULL;
+}
+
+static void list_delete_data(void* self, void* data)
+{
+  cell* target = list_get_cell_from_data(self, data);
+  list_remove(self, target);
 }
 
 static void list_display(void* self)
@@ -247,7 +297,7 @@ static void list_display(void* self)
   }
 
   while (target != NULL) {
-    printf("list[%d]=%d \n", i, target->data.value);
+    printf("list[%d]=%ld \n", i, target->data.value);
     if(target->next == NULL){
       break;
     }

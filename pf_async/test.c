@@ -41,7 +41,7 @@ static void thread1(void* pParam)
   printf(" thread1 is 0x%08lx. \n", (unsigned long)list);
   list->vect.init(list);
   for(int i=0;i<10;i++){
-    list->vect.add(list, random());
+    list->vect.add(list, random(), NULL);
   }
   list->vect.display(list);
 }
@@ -53,12 +53,12 @@ int main2(void){
     printf("test start[%d]. \n", i);
     cell_class_constructor(&list, i);
     list.vect.init(&list);
-    list.vect.add(&list, 1);
-    list.vect.add(&list, 3);
-    list.vect.add(&list, 2);
-    list.vect.add(&list, 5);
-    list.vect.add(&list, 4);
-    list.vect.add(&list, 1);
+    list.vect.add(&list, 1, NULL);
+    list.vect.add(&list, 3, NULL);
+    list.vect.add(&list, 2, NULL);
+    list.vect.add(&list, 5, NULL);
+    list.vect.add(&list, 4, NULL);
+    list.vect.add(&list, 1, NULL);
     list.vect.display(&list);
     printf("test end. \n");
   }

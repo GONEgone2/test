@@ -12,13 +12,16 @@ typedef enum _cell_vect_kind{
 
 typedef struct _cell_vect{
   void (*init)(void* self);
-  void (*add) (void* self, int input);
+  void (*add) (void* self, unsigned long input, void* data);
+  void (*del) (void* self, void* data);
+  void (*get_next)(void* self, void* target_cell, void** next_cell);
   void (*display)(void* self);
 }cell_vect;
 
 typedef struct _cell_data
 {
-  int value;
+  unsigned long value;
+  void* data;
 }cell_data;
 
 typedef struct _cell

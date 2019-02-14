@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include "my_thread.h"
+#include "linkedlist.h"
 #include <string.h>
 #include <unistd.h>
 
@@ -17,6 +18,7 @@ static my_thread_ctrl vect = {
 /* --------------------- admin info -------------- */
 #define MY_THREAD_REQ_MAX 10
 static my_thread req_list[MY_THREAD_REQ_MAX];
+static cell_class req_list_admin;
 static int req_list_cnt = 0;
 static pthread_t g_admin_tid = 0;
 static int g_sys_init = 0;
@@ -32,6 +34,7 @@ void my_thread_sys_init(void)
   if(g_sys_init) return ;
   g_sys_init = 1;
   memset(req_list, 0, sizeof(my_thread) * MY_THREAD_REQ_MAX);
+  cell_class_constructor(&req_list_admin, cell_vect_kind_normal);
 }
 
 my_thread* my_thread_que_get_empty(void)
@@ -63,7 +66,7 @@ int my_thread_que_add(my_thread* thd, void* entry_func, void* entry_param,
   thd->data.cb_param = cb_param;
   thd->ctrl = &vect;
   thd->data.que_status = que_req_status_wait_do;
-  
+  req_list_admin.vect.add(&req_list_admin, (unsigned long)thd, thd);
   return 0;
   
 }
@@ -71,22 +74,13 @@ int my_thread_que_add(my_thread* thd, void* entry_func, void* entry_param,
 void my_thread_sys_wait_allque_done(void)
 {
   
-  my_thread* thd;
+  cell*      cell_next = (cell*) 0xff;
   
-  for(int i=0; i < MY_THREAD_REQ_MAX; i++ ){
-    
-    if(g_admin_tid == 0) break;
-    
-    thd = &req_list[i];
-    if(my_thread_chk_enable_que(thd)){
-      if(thd->data.que_status == que_req_status_doing){
-	thd->ctrl->wait(thd);
-      }
-      if(thd->data.que_status != que_req_status_empty){
-	i = 0;
-	usleep(100 * 1000);
-	continue;
-      }
+  /* signalかえたい */
+  while(cell_next){
+    req_list_admin.vect.get_next(&req_list_admin, NULL, (void**)&cell_next);
+    if(cell_next != NULL){
+      usleep(100 * 1000);
     }
   }
 }
@@ -162,6 +156,8 @@ static void my_thread_run_que(my_thread* thd)
     thd->ctrl->run(thd);
   }
   thd->data.que_status = que_req_status_empty;
+  req_list_admin.vect.del(&req_list_admin, thd);
+
 }
 
 static void my_thread_init(void* self){

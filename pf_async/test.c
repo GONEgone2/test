@@ -9,30 +9,31 @@
 static void thread1(void* pParam);
 static void thread1_cbfunc(void* pParam);
 
-#define TEST_LIST_MAX 1
+#define TEST_LIST_MAX 6
 
 int main(void){
   void* list[TEST_LIST_MAX];
-  my_thread* thd[TEST_LIST_MAX];
+  void* thd_core;
+  void* thd[TEST_LIST_MAX];
 
   /* declarative */
-  my_thread_sys_init();
-  my_thread_sys_run_start();
-
+  my_thread_sys_init(&thd_core);
+  my_thread_sys_run_start(thd_core);
   for(int i = 0; i < TEST_LIST_MAX; i++){
     cell_class_init(i%3, &list[i]);
     printf("[%d] 0x%016lx\n", i, (unsigned long)list[i]);
-    thd[i] = my_thread_que_get_empty();
-    my_thread_que_add(thd[i], thread1, list[i], thread1_cbfunc, list[i]);
+    my_thread_que_get_empty(thd_core, &thd[i]);
+    my_thread_que_add(thd_core, thd[i], thread1, list[i], thread1_cbfunc, list[i]);
   }
-  
-  my_thread_sys_wait_allque_done();
-  my_thread_sys_run_stop();
-  my_thread_sys_finish();
+
+  my_thread_sys_wait_allque_done(thd_core);
+
+  my_thread_sys_run_stop(thd_core);
+  my_thread_sys_finish(thd_core);
   for(int i = 0; i < TEST_LIST_MAX; i++){
     cell_class_finsh(list[i]);
   }
-  
+
   return 0;
 }
 

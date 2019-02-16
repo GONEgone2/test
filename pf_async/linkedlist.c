@@ -4,6 +4,7 @@
 #include "linkedlist.h"
 
 #define UNUSED_PARAM_IGNORE_COMPILE_WARN(x) ((void) x)
+
 typedef struct _cell_vect{
   void (*init)(void* self);
   void (*add) (void* self, void* data);

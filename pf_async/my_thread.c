@@ -14,12 +14,9 @@
 
 typedef struct _my_thread_data
 {
-  que_req_status que_status;
-  pthread_t tid;
-  void*     entry_func;
-  void*     entry_param;
-  void*     cb_func;
-  void*     cb_param;
+	que_req_status que_status;
+	pthread_t tid;
+	my_thread_event_handler evt_hdl;
 }my_thread_data;
 
 typedef struct _my_thread_ctrl
@@ -127,16 +124,15 @@ void my_thread_que_get_empty(void* my_thread_core_ptr, void** my_thread_ptr)
 
 int my_thread_que_add(
 	void* my_thread_core_ptr, void* my_thread_ptr,
-	void* entry_func, void* entry_param,
-	void* cb_func, void* cb_param)
+	my_thread_event_handler* evt_hdl)
 {
 	my_thread_core* core = my_thread_core_ptr;
 	my_thread* thd = my_thread_ptr;
-	
-	thd->data.entry_func = entry_func;
-	thd->data.entry_param = entry_param;
-	thd->data.cb_func = cb_func;
-	thd->data.cb_param = cb_param;
+	if(evt_hdl == NULL){
+		memset(&thd->data.evt_hdl, 0, sizeof(my_thread_event_handler));
+	}else{
+		thd->data.evt_hdl = *evt_hdl;
+	}
 	thd->ctrl = &vect;
 	thd->data.que_status = que_req_status_wait_do;
 	cell_class_add(core->req_list_admin, thd);
@@ -208,7 +204,7 @@ static void my_thread_search_que(void* my_thread_core_ptr)
 		thd = NULL;
 		for(int i = 0; i <MY_THREAD_REQ_MAX; i++){
 			if(
-				(req_list[i].data.entry_func != NULL)
+				(req_list[i].data.evt_hdl.entry_func != NULL)
 				&& (req_list[i].data.que_status == que_req_status_wait_do)
 				&& (req_list[i].data.tid == 0)
 				){
@@ -258,18 +254,23 @@ static void my_thread_init(void* self){
 }
 
 static void my_thread_entry(void* self){
-  my_thread* this = self;
-  void (*entry_func)(void* entry_param);
-  void (*cb_func)(void* cb_param);
+	my_thread* this = self;
+	void (*init_func)(void* init_parm);
+	void (*entry_func)(void* entry_param);
+	void (*cb_func)(void* cb_param);
 
-  entry_func = this->data.entry_func;
-  if(entry_func != NULL){
-    entry_func(this->data.entry_param);
-  }
-  cb_func = this->data.cb_func;
-  if(cb_func != NULL){
-    cb_func(this->data.cb_param);
-  }
+    init_func = this->data.evt_hdl.init_func;
+	if(init_func != NULL){
+	    init_func(this->data.evt_hdl.init_parm);
+	}
+	entry_func = this->data.evt_hdl.entry_func;
+	if(entry_func != NULL){
+		entry_func(this->data.evt_hdl.entry_param);
+	}
+	cb_func = this->data.evt_hdl.cb_func;
+	if(cb_func != NULL){
+		cb_func(this->data.evt_hdl.cb_param);
+	}
 }
 
 static void my_thread_run(void* self){

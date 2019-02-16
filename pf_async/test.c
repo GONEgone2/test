@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "my_thread.h"
 #include "linkedlist.h"
@@ -15,19 +16,29 @@ int main(void){
   void* list[TEST_LIST_MAX];
   void* thd_core;
   void* thd[TEST_LIST_MAX];
-
-  /* declarative */
+  my_thread_event_handler evt_hdl;
+  
+  /* initial */
+  memset(&evt_hdl, 0, sizeof(my_thread_event_handler));
+  evt_hdl.entry_func = thread1;
+  evt_hdl.cb_func = thread1_cbfunc;
   my_thread_sys_init(&thd_core);
   my_thread_sys_run_start(thd_core);
+  
+  /* request add*/
   for(int i = 0; i < TEST_LIST_MAX; i++){
     cell_class_init(i%3, &list[i]);
     printf("[%d] 0x%016lx\n", i, (unsigned long)list[i]);
     my_thread_que_get_empty(thd_core, &thd[i]);
-    my_thread_que_add(thd_core, thd[i], thread1, list[i], thread1_cbfunc, list[i]);
+	evt_hdl.entry_param = list[i];
+	evt_hdl.cb_param = list[i];
+    my_thread_que_add(thd_core, thd[i], &evt_hdl);
   }
-
+  
+  /* request wait */
   my_thread_sys_wait_allque_done(thd_core);
-
+  
+  /* system finish */
   my_thread_sys_run_stop(thd_core);
   my_thread_sys_finish(thd_core);
   for(int i = 0; i < TEST_LIST_MAX; i++){

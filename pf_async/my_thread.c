@@ -19,17 +19,9 @@ typedef struct _my_thread_data
 	my_thread_event_handler evt_hdl;
 }my_thread_data;
 
-typedef struct _my_thread_ctrl
-{
-  void (*init)(void* self);
-  void (*run)(void* self);
-  void (*wait)(void* self);
-}my_thread_ctrl;
-
 typedef struct _my_thread
 {
   my_thread_data data;
-  my_thread_ctrl* ctrl;
 }my_thread;
 
 typedef struct _my_thread_run_que_prm
@@ -50,13 +42,6 @@ typedef struct _my_thread_core
 static void my_thread_init(void* self);
 static void my_thread_run(void* self);
 static void my_thread_wait(void* self);
-
-static my_thread_ctrl vect = {
-  my_thread_init, /* init */
-  my_thread_run,  /* run */
-  my_thread_wait  /* wait */
-};
-
 
 /* --------------------- prottype func -------------- */
 static void my_thread_search_que(void* my_thread_core_ptr);
@@ -133,7 +118,6 @@ int my_thread_que_add(
 	}else{
 		thd->data.evt_hdl = *evt_hdl;
 	}
-	thd->ctrl = &vect;
 	thd->data.que_status = que_req_status_wait_do;
 	cell_class_add(core->req_list_admin, thd);
 	return 0;
@@ -235,7 +219,7 @@ static void my_thread_search_que(void* my_thread_core_ptr)
 			pthread_create(&thd->data.tid, NULL, (void*)my_thread_run_que, thd_prm);
 			thd->data.que_status = que_req_status_doing;
 #if (MY_THREAD_EXE_MAX == 1)
-			thd->ctrl->wait(thd);
+		    my_thread_wait(thd);
 #endif
 		}
 	}
@@ -249,15 +233,10 @@ static void my_thread_run_que(my_thread_run_que_prm* prm)
 	if(my_thread_chk_enable_que(thd) == 0) return;
 
 	/* run que */
-	if(thd->ctrl->init != NULL){
-		thd->ctrl->init(thd);
-	}
-	if(thd->ctrl->run != NULL){
-		thd->ctrl->run(thd);
-	}
+	my_thread_init(thd);
+    my_thread_run(thd);
 	thd->data.que_status = que_req_status_empty;
 	cell_class_del(core->req_list_admin, thd);
-	
 }
 
 static void my_thread_init(void* self){
@@ -266,12 +245,14 @@ static void my_thread_init(void* self){
   if(this == NULL) return;
 }
 
-static void my_thread_entry(void* self){
+static void my_thread_run(void* self){
 	my_thread* this = self;
 	void (*init_func)(void* init_parm);
 	void (*entry_func)(void* entry_param);
 	void (*cb_func)(void* cb_param);
-
+	
+	if(this == NULL) return;
+	
     init_func = this->data.evt_hdl.init_func;
 	if(init_func != NULL){
 	    init_func(this->data.evt_hdl.init_parm);
@@ -286,14 +267,6 @@ static void my_thread_entry(void* self){
 	}
 }
 
-static void my_thread_run(void* self){
-  my_thread* this = self;
-
-  if(this == NULL) return;
-  my_thread_entry(self);
-  
-}
-
 static void my_thread_wait(void* self){
   my_thread* this = self;
 
@@ -304,7 +277,7 @@ static void my_thread_wait(void* self){
 static int my_thread_chk_enable_que(my_thread* thd)
 {
   
-  if((thd == NULL) || (thd->ctrl == NULL)){
+  if(thd == NULL){
     return 0;
   }
   return 1;

@@ -10,7 +10,7 @@
 
 /* --------------------- admin info -------------- */
 #define MY_THREAD_REQ_MAX 10
-#define MY_THREAD_EXE_MAX 1
+#define MY_THREAD_EXE_MAX 2
 
 typedef struct _my_thread_data
 {
@@ -192,7 +192,7 @@ static void my_thread_search_que(void* my_thread_core_ptr)
 	my_thread_core* core = my_thread_core_ptr;
 	my_thread* thd;
 	my_thread* req_list = core->req_list;
-	int s;
+	int s, thd_exec_cnt;
 
 	s = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 	if(s != 0){
@@ -202,6 +202,7 @@ static void my_thread_search_que(void* my_thread_core_ptr)
 	while(1){
 		/* search que*/
 		thd = NULL;
+		thd_exec_cnt = 0;
 		for(int i = 0; i <MY_THREAD_REQ_MAX; i++){
 			if(
 				(req_list[i].data.evt_hdl.entry_func != NULL)
@@ -209,11 +210,21 @@ static void my_thread_search_que(void* my_thread_core_ptr)
 				&& (req_list[i].data.tid == 0)
 				){
 				thd = &req_list[i];
-				break;
+			}
+			if(
+				(req_list[i].data.evt_hdl.entry_func != NULL)
+				&& (req_list[i].data.que_status == que_req_status_doing)
+				){
+				thd_exec_cnt++;
 			}
 		}
     
-		if(my_thread_chk_enable_que(thd) == 0){
+		if(
+			(my_thread_chk_enable_que(thd) == 0)
+#if (MY_THREAD_EXE_MAX != 0)			
+			|| (thd_exec_cnt >= MY_THREAD_EXE_MAX)
+#endif
+			){
 			/* none request...waiting. */
 			usleep(100 * 1000); //100ms wait    
 		}else{
@@ -223,7 +234,9 @@ static void my_thread_search_que(void* my_thread_core_ptr)
 		    thd_prm->thread = thd;
 			pthread_create(&thd->data.tid, NULL, (void*)my_thread_run_que, thd_prm);
 			thd->data.que_status = que_req_status_doing;
+#if (MY_THREAD_EXE_MAX == 1)
 			thd->ctrl->wait(thd);
+#endif
 		}
 	}
 }

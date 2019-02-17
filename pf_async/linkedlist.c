@@ -94,6 +94,19 @@ void cell_class_del(void* cell_class_ptr, void* data)
   cell_class* self = cell_class_ptr;
   self->vect.del(self, data);
 }
+int cell_class_is_data(void* cell_class_ptr, void* data)
+{
+  cell_class* self = cell_class_ptr;
+  cell* target_cell = self->list_top;
+  while(target_cell != NULL){
+	  if(target_cell->data.data == data){
+		  return 1;
+	  }
+	  target_cell = target_cell->next;
+  }
+  return 0;
+}
+
 void cell_class_get_next(void* cell_class_ptr, void* target_cell, void** cell_ptr)
 {
   cell* ret;

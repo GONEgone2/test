@@ -13,6 +13,6 @@ $(PROGRAM): $(OBJECTS)
 	$(CC) $(OBJECTS) $(CFLAGS) $(LIBRARIES) -o $(PROGRAM)
 
 clean:
-	rm -f *.o $(PROGRAM) $(GTAGS)
-distclean:
 	rm -f *.o $(PROGRAM)
+distclean:
+	rm -f *.o $(PROGRAM) $(GTAGS)
